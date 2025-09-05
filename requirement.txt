@@ -1,0 +1,7 @@
+pandas
+numpy
+setuptools
+pyyaml
+azure-identity
+azure-storage-blob
+python-dotenv
