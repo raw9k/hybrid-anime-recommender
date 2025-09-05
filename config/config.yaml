@@ -1,0 +1,7 @@
+data_ingestion:
+  bucket_name: "myanimedata"           # Azure container name
+  storage_account_name: "myanimerecommender"  # Azure storage account name
+  bucket_file_names:
+    - "animelist.csv"
+    - "anime.csv"
+    - "anime_with_synopsis.csv"
