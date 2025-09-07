@@ -11,3 +11,4 @@ wordcloud
 scikit-learn
 comet-ml
 dvc
+flask

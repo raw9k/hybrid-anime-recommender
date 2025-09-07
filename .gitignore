@@ -6,6 +6,8 @@ artifacts/processed/
 artifacts/model/
 artifacts/weights/
 artifacts/model_checkpoint/
+
+test.py
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

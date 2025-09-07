@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hybrid Anime Recommender System</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="form-container">
+    <h1>✨ Welcome to our Anime Recommender ✨</h1>
+    <form action="/" method="POST">
+      <label for="userID">Enter your User ID:</label><br>
+      <input type="number" id="userID" name="userID" placeholder="e.g. 101" required><br>
+      <button type="submit">🎌 Get Recommendations 🎌</button>
+    </form>
+
+    {% if recommendations %}
+    <div class="results-container">
+      <h2>🍡 Your Anime Recommendations 🍡</h2>
+      <ul>
+        {% for anime in recommendations %}
+        <li>🌸 {{ anime }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+</body>
+</html>
