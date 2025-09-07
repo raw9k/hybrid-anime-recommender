@@ -3,28 +3,349 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hybrid Anime Recommender System</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <title>Anime Recommender</title>
+  <style>
+    /* 🌸 Background with cherry blossom gradient */
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #ffe6f0 0%, #ffb6c1 30%, #ff99cc 60%, #f6d5f7 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center; /* Back to center */
+      color: #333;
+      /* No overflow hidden */
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 2rem 2.5rem;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      max-width: 600px;
+      width: 90%;
+      text-align: center;
+      backdrop-filter: blur(6px);
+      animation: fadeIn 1.2s ease-in-out;
+      z-index: 10;
+      /* Add these for dynamic positioning */
+      position: relative;
+      max-height: 80vh; /* Limit height to 80% of viewport */
+      overflow-y: auto; /* Allow scrolling within container */
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1.5rem;
+      color: #ff4da6;
+      text-shadow: 1px 1px #ffd6eb;
+    }
+
+    form {
+      margin-bottom: 1.5rem;
+    }
+
+    .autocomplete-container {
+      position: relative;
+      width: 100%;
+    }
+
+    #query {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: 2px solid #ffb6c1;
+      border-radius: 12px;
+      outline: none;
+      transition: 0.3s;
+    }
+
+    #query:focus {
+      border-color: #ff4da6;
+      box-shadow: 0 0 10px #ff99cc;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 12px 25px;
+      border: none;
+      border-radius: 30px;
+      background: linear-gradient(to right, #ff4da6, #ff85b3);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+      font-size: 1rem;
+    }
+
+    button:hover {
+      background: linear-gradient(to right, #ff3385, #ff66a3);
+      transform: scale(1.05);
+      box-shadow: 0 8px 20px rgba(255, 0, 85, 0.4);
+    }
+
+    /* Suggestions dropdown */
+    .autocomplete-suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #fff0f5;
+      border: 1px solid #ffb6c1;
+      border-radius: 0 0 12px 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+    }
+
+    .suggestion-item {
+      padding: 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #f5cfe3;
+      transition: 0.2s;
+    }
+
+    .suggestion-item:hover,
+    .suggestion-item.active {
+      background: #ffccdd;
+      color: #fff;
+    }
+
+    /* Recommendations */
+    .recommendations {
+      margin-top: 1.5rem;
+      text-align: left;
+    }
+
+    .recommendations h2 {
+      color: #ff4da6;
+      margin-bottom: 1rem;
+    }
+
+    .recommendations ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .recommendations li {
+      background: #fff0f5;
+      margin: 10px 0;
+      padding: 12px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      font-size: 1.05rem;
+      transition: 0.3s;
+    }
+
+    .recommendations li:hover {
+      background: #ffe6f0;
+      transform: translateX(5px);
+    }
+
+    /* Custom scrollbar for container */
+    .container::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .container::-webkit-scrollbar-track {
+      background: rgba(255, 182, 193, 0.3);
+      border-radius: 10px;
+    }
+
+    .container::-webkit-scrollbar-thumb {
+      background: linear-gradient(to bottom, #ff4da6, #ff85b3);
+      border-radius: 10px;
+    }
+
+    .container::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(to bottom, #ff3385, #ff66a3);
+    }
+
+    /* Fade in animation */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 🌸 Sakura Petals Animation */
+    .petal {
+      position: fixed;
+      top: -10%;
+      font-size: 24px;
+      animation: fall linear infinite;
+      pointer-events: none;
+      z-index: 1; /* behind the container */
+    }
+
+    @keyframes fall {
+      0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(110vh) rotate(360deg);
+        opacity: 0;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="form-container">
-    <h1>✨ Welcome to our Anime Recommender ✨</h1>
-    <form action="/" method="POST">
-      <label for="userID">Enter your User ID:</label><br>
-      <input type="number" id="userID" name="userID" placeholder="e.g. 101" required><br>
+  <div class="container">
+    <h1>✨ Anime Recommender System ✨</h1>
+    
+    <form method="POST">
+      <div class="autocomplete-container">
+        <input 
+          type="text" 
+          id="query" 
+          name="query" 
+          placeholder="Enter User ID or Anime Title" 
+          value="{{ query or '' }}"
+          autocomplete="off"
+          required 
+        />
+        <div id="suggestions" class="autocomplete-suggestions"></div>
+      </div>
       <button type="submit">🎌 Get Recommendations 🎌</button>
     </form>
-
+    
     {% if recommendations %}
-    <div class="results-container">
-      <h2>🍡 Your Anime Recommendations 🍡</h2>
-      <ul>
-        {% for anime in recommendations %}
-        <li>🌸 {{ anime }}</li>
-        {% endfor %}
-      </ul>
-    </div>
+      <div class="recommendations">
+        <h2>🍡 Recommended Anime 🍡</h2>
+        <ul>
+          {% for anime in recommendations %}
+            <li>🌸 {{ anime }}</li>
+          {% endfor %}
+        </ul>
+      </div>
     {% endif %}
   </div>
+
+  <script>
+    /* 🔽 Autocomplete logic */
+    const queryInput = document.getElementById('query');
+    const suggestionsDiv = document.getElementById('suggestions');
+    let currentSuggestions = [];
+    let selectedIndex = -1;
+    
+    queryInput.addEventListener('input', async function() {
+      const query = this.value.trim();
+      
+      if (query.length < 2) {
+        hideSuggestions();
+        return;
+      }
+      
+      if (!isNaN(query)) {
+        hideSuggestions();
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/suggestions?q=${encodeURIComponent(query)}`);
+        const suggestions = await response.json();
+        showSuggestions(suggestions);
+      } catch (error) {
+        console.error('Error fetching suggestions:', error);
+        hideSuggestions();
+      }
+    });
+    
+    queryInput.addEventListener('keydown', function(e) {
+      if (currentSuggestions.length === 0) return;
+      
+      switch(e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          selectedIndex = Math.min(selectedIndex + 1, currentSuggestions.length - 1);
+          updateSelection();
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          selectedIndex = Math.max(selectedIndex - 1, -1);
+          updateSelection();
+          break;
+        case 'Enter':
+          if (selectedIndex >= 0) {
+            e.preventDefault();
+            selectSuggestion(currentSuggestions[selectedIndex]);
+          }
+          break;
+        case 'Escape':
+          hideSuggestions();
+          break;
+      }
+    });
+    
+    function showSuggestions(suggestions) {
+      currentSuggestions = suggestions;
+      selectedIndex = -1;
+      
+      if (suggestions.length === 0) {
+        hideSuggestions();
+        return;
+      }
+      
+      suggestionsDiv.innerHTML = suggestions.map(suggestion => 
+        `<div class="suggestion-item" onclick="selectSuggestion('${suggestion.replace(/'/g, "\\'")}')">${suggestion}</div>`
+      ).join('');
+      
+      suggestionsDiv.style.display = 'block';
+    }
+    
+    function hideSuggestions() {
+      suggestionsDiv.style.display = 'none';
+      currentSuggestions = [];
+      selectedIndex = -1;
+    }
+    
+    function updateSelection() {
+      const items = suggestionsDiv.querySelectorAll('.suggestion-item');
+      items.forEach((item, index) => {
+        item.classList.toggle('active', index === selectedIndex);
+      });
+    }
+    
+    function selectSuggestion(suggestion) {
+      queryInput.value = suggestion;
+      hideSuggestions();
+    }
+    
+    document.addEventListener('click', function(e) {
+      if (!queryInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+        hideSuggestions();
+      }
+    });
+
+    /* 🌸 Sakura Petals Generator */
+    function createPetal() {
+      const petal = document.createElement("div");
+      petal.classList.add("petal");
+      petal.innerText = "🌸";
+
+      // Random horizontal position
+      petal.style.left = Math.random() * 100 + "vw";
+
+      // Random animation duration (falling speed)
+      petal.style.animationDuration = 5 + Math.random() * 5 + "s";
+
+      // Random size
+      petal.style.fontSize = (16 + Math.random() * 20) + "px";
+
+      document.body.appendChild(petal);
+
+      // Remove after animation ends
+      setTimeout(() => {
+        petal.remove();
+      }, 10000);
+    }
+
+    // Generate petals every 300ms
+    setInterval(createPetal, 300);
+  </script>
 </body>
 </html>

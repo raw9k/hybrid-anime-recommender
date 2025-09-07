@@ -1,135 +1,185 @@
 import pandas as pd
 import numpy as np
 import joblib
+from difflib import SequenceMatcher
+import re
+import os
 from config.path_config import *
+
+def load_dataframe(file_path):
+    """Load DataFrame from file path."""
+    try:
+        if os.path.exists(file_path):
+            return pd.read_csv(file_path)
+        else:
+            print(f"File not found: {file_path}")
+            return pd.DataFrame()
+    except Exception as e:
+        print(f"Error loading dataframe: {e}")
+        return pd.DataFrame()
 
 ############# 1. GET_ANIME_FRAME
 
-def getAnimeFrame(anime,path_df):
-    df = pd.read_csv(path_df)
-    if isinstance(anime,int):
+def getAnimeFrame(anime, path_df):
+    df = load_dataframe(path_df)
+    if isinstance(anime, int):
         return df[df.anime_id == anime]
-    if isinstance(anime,str):
+    if isinstance(anime, str):
         return df[df.eng_version == anime]
-    
 
 ########## 2. GET_SYNOPSIS
 
-def getSynopsis(anime,path_synopsis_df):
-    synopsis_df = pd.read_csv(path_synopsis_df)
-    if isinstance(anime,int):
-        return synopsis_df[synopsis_df.MAL_ID == anime].sypnopsis.values[0]
-    if isinstance(anime,str):
-        return synopsis_df[synopsis_df.Name == anime].sypnopsis.values[0]
-
+def getSynopsis(anime, path_synopsis_df):
+    synopsis_df = load_dataframe(path_synopsis_df)
+    try:
+        if isinstance(anime, int):
+            result = synopsis_df[synopsis_df.MAL_ID == anime].sypnopsis.values
+            if len(result) > 0:
+                return result[0]
+        if isinstance(anime, str):
+            result = synopsis_df[synopsis_df.Name == anime].sypnopsis.values
+            if len(result) > 0:
+                return result[0]
+    except Exception as e:
+        print(f"Error getting synopsis for {anime}: {e}")
+    return "Synopsis not available"
 
 ########## 3. CONTENT RECOMMENDATION
 
 def find_similar_animes(name, path_anime_weights, path_anime2anime_encoded, path_anime2anime_decoded, path_anime_df, n=10, return_dist=False, neg=False):
-    # Load weights and encoded-decoded mappings
-    anime_weights = joblib.load(path_anime_weights)
-    anime2anime_encoded = joblib.load(path_anime2anime_encoded)
-    anime2anime_decoded = joblib.load(path_anime2anime_decoded)
+    try:
+        # Load weights and encoded-decoded mappings
+        if not os.path.exists(path_anime_weights):
+            print(f"Anime weights not found: {path_anime_weights}")
+            return pd.DataFrame()
+            
+        anime_weights = joblib.load(path_anime_weights)
+        anime2anime_encoded = joblib.load(path_anime2anime_encoded)
+        anime2anime_decoded = joblib.load(path_anime2anime_decoded)
 
-    # Get the anime ID for the given name
-    index = getAnimeFrame(name, path_anime_df).anime_id.values[0]
-    encoded_index = anime2anime_encoded.get(index)
+        # Get the anime ID for the given name
+        anime_frame = getAnimeFrame(name, path_anime_df)
+        if anime_frame.empty:
+            print(f"Anime not found: {name}")
+            return pd.DataFrame()
+            
+        index = anime_frame.anime_id.values[0]
+        encoded_index = anime2anime_encoded.get(index)
 
-    if encoded_index is None:
-        raise ValueError(f"Encoded index not found for anime ID: {index}")
+        if encoded_index is None:
+            print(f"Encoded index not found for anime ID: {index}")
+            return pd.DataFrame()
 
-    # Compute similarity distances
-    weights = anime_weights
-    dists = np.dot(weights, weights[encoded_index])  # Ensure weights[encoded_index] is a 1D array
-    sorted_dists = np.argsort(dists)
+        # Compute similarity distances
+        weights = anime_weights
+        dists = np.dot(weights, weights[encoded_index])
+        sorted_dists = np.argsort(dists)
 
-    n = n + 1
+        n = n + 1
 
-    # Select closest or farthest based on 'neg' flag
-    if neg:
-        closest = sorted_dists[:n]
-    else:
-        closest = sorted_dists[-n:]
+        # Select closest or farthest based on 'neg' flag
+        if neg:
+            closest = sorted_dists[:n]
+        else:
+            closest = sorted_dists[-n:]
 
-    # Return distances and closest indices if requested
-    if return_dist:
-        return dists, closest
+        # Return distances and closest indices if requested
+        if return_dist:
+            return dists, closest
 
-    # Build the similarity array
-    SimilarityArr = []
-    for close in closest:
-        decoded_id = anime2anime_decoded.get(close)
+        # Build the similarity array
+        SimilarityArr = []
+        for close in closest:
+            decoded_id = anime2anime_decoded.get(close)
+            if decoded_id is None:
+                continue
 
-        anime_frame = getAnimeFrame(decoded_id, path_anime_df)
+            anime_frame = getAnimeFrame(decoded_id, path_anime_df)
+            if anime_frame.empty:
+                continue
 
-        anime_name = anime_frame.eng_version.values[0]
-        genre = anime_frame.Genres.values[0]
-        similarity = dists[close]
+            anime_name = anime_frame.eng_version.values[0]
+            genre = anime_frame.Genres.values[0] if not anime_frame.Genres.empty else "Unknown"
+            similarity = dists[close]
 
-        SimilarityArr.append({
-            "anime_id": decoded_id,
-            "name": anime_name,
-            "similarity": similarity,
-            "genre": genre,
-        })
+            SimilarityArr.append({
+                "anime_id": decoded_id,
+                "name": anime_name,
+                "similarity": similarity,
+                "genre": genre,
+            })
 
-    # Create a DataFrame with results and sort by similarity
-    Frame = pd.DataFrame(SimilarityArr).sort_values(by="similarity", ascending=False)
-    return Frame[Frame.anime_id != index].drop(['anime_id'], axis=1)
-
+        # Create a DataFrame with results and sort by similarity
+        if SimilarityArr:
+            Frame = pd.DataFrame(SimilarityArr).sort_values(by="similarity", ascending=False)
+            return Frame[Frame.anime_id != index].drop(['anime_id'], axis=1)
+        else:
+            return pd.DataFrame()
+            
+    except Exception as e:
+        print(f"Error in find_similar_animes: {e}")
+        return pd.DataFrame()
 
 ######## 4. FIND_SIMILAR_USERS
 
-
-def find_similar_users(item_input , path_user_weights , path_user2user_encoded , path_user2user_decoded, n=10 , return_dist=False,neg=False):
+def find_similar_users(item_input, path_user_weights, path_user2user_encoded, path_user2user_decoded, n=10, return_dist=False, neg=False):
     try:
-
+        if not os.path.exists(path_user_weights):
+            print(f"User weights not found: {path_user_weights}")
+            return pd.DataFrame()
+            
         user_weights = joblib.load(path_user_weights)
         user2user_encoded = joblib.load(path_user2user_encoded)
         user2user_decoded = joblib.load(path_user2user_decoded)
 
-        index=item_input
+        index = item_input
         encoded_index = user2user_encoded.get(index)
 
-        weights = user_weights
+        if encoded_index is None:
+            print(f"User not found in encoding: {index}")
+            return pd.DataFrame()
 
-        dists = np.dot(weights,weights[encoded_index])
+        weights = user_weights
+        dists = np.dot(weights, weights[encoded_index])
         sorted_dists = np.argsort(dists)
 
-        n=n+1
+        n = n + 1
 
         if neg:
             closest = sorted_dists[:n]
         else:
             closest = sorted_dists[-n:]
-            
 
         if return_dist:
-            return dists,closest
+            return dists, closest
         
         SimilarityArr = []
 
         for close in closest:
             similarity = dists[close]
 
-            if isinstance(item_input,int):
+            if isinstance(item_input, int):
                 decoded_id = user2user_decoded.get(close)
-                SimilarityArr.append({
-                    "similar_users" : decoded_id,
-                    "similarity" : similarity
-                })
-        similar_users = pd.DataFrame(SimilarityArr).sort_values(by="similarity",ascending=False)
-        similar_users = similar_users[similar_users.similar_users != item_input]
-        return similar_users
+                if decoded_id is not None:
+                    SimilarityArr.append({
+                        "similar_users": decoded_id,
+                        "similarity": similarity
+                    })
+                    
+        if SimilarityArr:
+            similar_users = pd.DataFrame(SimilarityArr).sort_values(by="similarity", ascending=False)
+            similar_users = similar_users[similar_users.similar_users != item_input]
+            return similar_users
+        else:
+            return pd.DataFrame()
+            
     except Exception as e:
-        print("Error Occured",e)
-
+        print(f"Error in find_similar_users: {e}")
+        return pd.DataFrame()
 
 ################## 5. GET USER PREF
 
 def get_user_preferences(user_id , path_rating_df , path_anime_df ):
-
-
     rating_df = pd.read_csv(path_rating_df)
     df = pd.read_csv(path_anime_df)
 
@@ -155,8 +205,6 @@ def get_user_preferences(user_id , path_rating_df , path_anime_df ):
 
 
 def get_user_recommendations(similar_users , user_pref ,path_anime_df , path_synopsis_df, path_rating_df, n=10):
-
-
     recommended_animes = []
     anime_list = []
 
@@ -189,4 +237,42 @@ def get_user_recommendations(similar_users , user_pref ,path_anime_df , path_syn
                         "Synopsis": synopsis
                     })
     return pd.DataFrame(recommended_animes).head(n)
+
+def fuzzy_match_anime(query, anime_list, threshold=0.4):
+    """
+    Find anime names that match the query using fuzzy string matching.
+    """
+    query = query.lower().strip()
+    matches = []
+    
+    for anime in anime_list:
+        if anime and isinstance(anime, str):
+            anime_lower = anime.lower()
             
+            # Exact substring match gets highest priority
+            if query in anime_lower:
+                matches.append((anime, 1.0))
+            else:
+                # Calculate similarity ratio
+                similarity = SequenceMatcher(None, query, anime_lower).ratio()
+                if similarity >= threshold:
+                    matches.append((anime, similarity))
+    
+    # Sort by similarity (descending) and return names only
+    matches.sort(key=lambda x: x[1], reverse=True)
+    return [name for name, _ in matches]
+
+def find_best_anime_match(query, df_path):
+    """
+    Find the best matching anime name from the dataset.
+    """
+    df = load_dataframe(df_path)
+    if df.empty:
+        return None
+        
+    anime_names = df['eng_version'].dropna().unique().tolist()
+    matches = fuzzy_match_anime(query, anime_names, threshold=0.3)
+    
+    if matches:
+        return matches[0]  # Return the best match
+    return None
