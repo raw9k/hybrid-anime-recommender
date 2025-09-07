@@ -36,3 +36,4 @@ USER2USER_DECODED = os.path.join(PROCESSED_DIR, "user2user_decoded.pkl")
 
 # Model path
 MODEL_PATH = os.path.join(MODEL_DIR, "model.h5")
+CHECKPOINT_FILE_PATH = "artifacts/model_checkpoint/weights.weights.h5"
