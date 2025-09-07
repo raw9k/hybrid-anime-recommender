@@ -1,6 +1,11 @@
 #personalised
 azure_storage_blob.py
-artifacts
+venv
+artifacts/raw/
+artifacts/processed/
+artifacts/model/
+artifacts/weights/
+artifacts/model_checkpoint/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
