@@ -1,5 +1,5 @@
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input,Embedding,Dot,Flatten,Dense,Activation,BatchNormalization
+from tensorflow.keras.models import Model                                                                      # type: ignore
+from tensorflow.keras.layers import Input,Embedding,Dot,Flatten,Dense,Activation,BatchNormalization            # type: ignore         
 from utils.common_function import read_yaml
 from src.logger import get_logger
 from src.custom_exception import CustomException

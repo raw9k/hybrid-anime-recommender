@@ -2,7 +2,7 @@ import joblib
 import comet_ml
 import numpy as np
 import os
-from tensorflow.keras.callbacks import ModelCheckpoint,LearningRateScheduler,TensorBoard,EarlyStopping
+from tensorflow.keras.callbacks import ModelCheckpoint,LearningRateScheduler,TensorBoard,EarlyStopping # type: ignore
 from src.logger import get_logger
 from src.custom_exception import CustomException
 from src.base_model import BaseModel
