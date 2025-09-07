@@ -1,6 +1,6 @@
 #personalised
 azure_storage_blob.py
-
+artifacts
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
