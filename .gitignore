@@ -2,9 +2,7 @@
 azure_storage_blob.py
 venv
 artifacts/raw/
-artifacts/processed/
-artifacts/model/
-artifacts/weights/
+
 artifacts/model_checkpoint/
 
 test.py
